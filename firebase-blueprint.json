@@ -1,0 +1,133 @@
+{
+  "entities": {
+    "Post": {
+      "title": "Post",
+      "description": "Student discussions, announcements or notes for Rajalakshmi Engineering College",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "department": { "type": "string" },
+        "category": { "type": "string" },
+        "upvotes": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "authorName": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "tags": { "type": "array" },
+        "isAiVerified": { "type": "boolean" },
+        "quality": { "type": "string" }
+      }
+    },
+    "Professor": {
+      "title": "Professor",
+      "description": "Department faculty reviews at REC",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "department": { "type": "string" }
+      }
+    },
+    "PlacementExperience": {
+      "title": "PlacementExperience",
+      "description": "Recruitment experiences of REC students",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "ctc": { "type": "string" },
+        "rounds": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "tips": { "type": "string" },
+        "authorName": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "upvotes": { "type": "number" }
+      }
+    },
+    "InternshipExperience": {
+      "title": "InternshipExperience",
+      "description": "REC student internship logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "stipend": { "type": "string" },
+        "applicationProcess": { "type": "string" },
+        "referralTips": { "type": "string" },
+        "warning": { "type": "string" },
+        "skillsRequired": { "type": "array" },
+        "authorName": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "upvotes": { "type": "number" },
+        "department": { "type": "string" }
+      }
+    },
+    "SurvivalTip": {
+      "title": "SurvivalTip",
+      "description": "Core survival advice at Rajalakshmi Engineering College",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "upvotes": { "type": "number" },
+        "authorName": { "type": "string" },
+        "isAnonymous": { "type": "boolean" }
+      }
+    },
+    "ModerationRecord": {
+      "title": "ModerationRecord",
+      "description": "Logs for blocked content, appeals status and audit logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contentType": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorName": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "studentEmail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "blockedReason": { "type": "string" },
+        "status": { "type": "string" },
+        "appealText": { "type": "string" },
+        "appealCreatedAt": { "type": "string", "format": "date-time" },
+        "moderatorNotes": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "posts": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Interactive college postings"
+    },
+    "professors": {
+      "schema": { "$ref": "#/entities/Professor" },
+      "description": "College professors list"
+    },
+    "placementExperiences": {
+      "schema": { "$ref": "#/entities/PlacementExperience" },
+      "description": "Student placement stories"
+    },
+    "internshipExperiences": {
+      "schema": { "$ref": "#/entities/InternshipExperience" },
+      "description": "Student internship database"
+    },
+    "survivalTips": {
+      "schema": { "$ref": "#/entities/SurvivalTip" },
+      "description": "Peer-reviewed survival handbook"
+    },
+    "moderationRecords": {
+      "schema": { "$ref": "#/entities/ModerationRecord" },
+      "description": "AI-moderated logs, student appeals and human reviews history"
+    }
+  }
+}

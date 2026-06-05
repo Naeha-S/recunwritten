@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;450;500;650;800;900&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --animate-spin-slow: spin 12s linear infinite;
+}
+
+/* Elegant scrollbar utilities */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(147, 51, 234, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(147, 51, 234, 0.35);
+}
+
+/* --- Midnight Dark Theme Overrides for unwritten-REC --- */
+.dark-theme {
+  background-color: #030712 !important; /* Elegant black/navy slate */
+  color: #f8fafc !important;
+}
+
+.dark-theme #applet-viewport {
+  background-color: #030712 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme header#main-header {
+  background-color: #090d16 !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme header#main-header h1,
+.dark-theme header#main-header p {
+  color: #f8fafc !important;
+}
+
+.dark-theme header#main-header input {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme header#main-header input::placeholder {
+  color: #64748b !important;
+}
+
+/* Sidebar support */
+.dark-theme aside {
+  background-color: #090d16 !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme aside a, 
+.dark-theme aside button {
+  color: #94a3b8 !important;
+}
+
+.dark-theme aside a.bg-violet-50, 
+.dark-theme aside button.bg-violet-50,
+.dark-theme aside a.bg-violet-100 {
+  background-color: #1e1b4b !important;
+  color: #e0e7ff !important;
+}
+
+/* PostCard support */
+.dark-theme article {
+  background-color: #090d16 !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme article h3 {
+  color: #f8fafc !important;
+}
+
+.dark-theme article div.bg-slate-50\/50,
+.dark-theme article div.leading-relaxed {
+  background-color: #111827 !important;
+  border-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-theme article div.border-slate-100 {
+  border-color: #1e293b !important;
+}
+
+/* Search wrap, filters & general text headings */
+.dark-theme h2,
+.dark-theme h3:not(.text-slate-850) {
+  color: #f8fafc !important;
+}
+
+.dark-theme select {
+  background-color: #090d16 !important;
+  border-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+/* Subtitles, labels and texts */
+.dark-theme label,
+.dark-theme span.text-slate-500,
+.dark-theme div.text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.dark-theme #feed-category-filter-wrapper,
+.dark-theme #feed-author-role-filter-wrapper {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark-theme #feed-category-filter-wrapper select,
+.dark-theme #feed-author-role-filter-wrapper select {
+  color: #818cf8 !important;
+}
+
+/* Background panel styles for lists & widgets */
+.dark-theme div.bg-white {
+  background-color: #090d16 !important;
+  border-color: #1e293b !important;
+}
+
+/* Department Pages / other cards */
+.dark-theme div.border-slate-100 {
+  border-color: #1e293b !important;
+}
+
+.dark-theme .text-slate-800 {
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+
+.dark-theme .text-slate-700 {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .bg-slate-50 {
+  background-color: #090d16 !important;
+}
+
+.dark-theme .border-slate-200 {
+  border-color: #1e293b !important;
+}
+
+.dark-theme .bg-violet-50 {
+  background-color: #1e1b4b !important;
+  color: #e0e7ff !important;
+}
+
+.dark-theme .hover\:bg-slate-50:hover {
+  background-color: #111827 !important;
+}
+
+/* Additional elements in widgets */
+.dark-theme input, 
+.dark-theme textarea {
+  background-color: #111827 !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+

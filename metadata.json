@@ -1,0 +1,6 @@
+{
+  "name": "Unwritten REC",
+  "description": "The unofficial student knowledge network and survival guide for Rajalakshmi Engineering College (REC), Chennai.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
