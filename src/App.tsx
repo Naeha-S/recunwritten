@@ -4,7 +4,9 @@ import {
   getSavedProfessors, saveProfessors,
   getSavedPlacements, savePlacements,
   getSavedInternships, saveInternships,
-  getSavedSurvivalTips, saveSurvivalTips
+  getSavedSurvivalTips, saveSurvivalTips,
+  INITIAL_PROFESSORS,
+  PROFESSOR_DEPARTMENT_MAP
 } from './data/seedData';
 import { 
   fetchCollectionFromFirestore, 
@@ -14,9 +16,10 @@ import {
   updateProfessorReviewsFirestore, 
   seedFirestoreDatabaseIfNecessary,
   updateModerationRecordFirestore,
-  deleteDocumentFromFirestore
+  deleteDocumentFromFirestore,
+  validateFirestoreDocument
 } from './lib/firebase';
-import { Post, Professor, PlacementExperience, InternshipExperience, SurvivalTip, Comment, ModerationRecord } from './types';
+import { Post, Professor, ProfessorReview, PlacementExperience, InternshipExperience, SurvivalTip, Comment, ModerationRecord } from './types';
 import Header from './components/Header';
 import { sanitizeInputText, checkTeenagersLoveOrPrank, parseStudentEmail, getPostCategoryGroup } from './lib/safety';
 import Sidebar from './components/Sidebar';
@@ -113,15 +116,8 @@ export default function App() {
   const [appealSuccessTrigger, setAppealSuccessTrigger] = React.useState(false);
   const [rateLimitWarningText, setRateLimitWarningText] = React.useState<string | null>(null);
 
-  // Resend Integration Playground States
-  const [resendSubTab, setResendSubTab] = React.useState<'saved' | 'resend'>('saved');
-  const [resendTestKey, setResendTestKey] = React.useState('');
-  const [resendTestRecipient, setResendTestRecipient] = React.useState('naevaspam@gmail.com');
-  const [resendTestSubject, setResendTestSubject] = React.useState('Hello World');
-  const [resendTestHtml, setResendTestHtml] = React.useState('<p>Congrats on sending your <strong>first email</strong>!</p>');
-  const [resendTestLoading, setResendTestLoading] = React.useState(false);
-  const [resendTestResult, setResendTestResult] = React.useState<{ success: boolean; message: string; data?: any; error?: string } | null>(null);
-  const [copiedCellId, setCopiedCellId] = React.useState<string | null>(null);
+  // Mobile responsive sidebar drawer state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
 
   // Primary States
   const [posts, setPosts] = React.useState<Post[]>([]);
@@ -206,45 +202,46 @@ export default function App() {
   React.useEffect(() => {
     async function initFirebaseAndSync() {
       try {
-        const initialP = getSavedPosts();
-        const initialPr = getSavedProfessors();
-        const initialPl = getSavedPlacements();
-        const initialIt = getSavedInternships();
-        const initialS_Tips = getSavedSurvivalTips();
-
-        // Seed empty Firestore
-        await seedFirestoreDatabaseIfNecessary(
-          initialP,
-          initialPr,
-          initialPl,
-          initialIt,
-          initialS_Tips
-        );
-
-        // Load database sets
+        // Load database sets strictly from Firestore
         const dbPosts = await fetchCollectionFromFirestore<Post>("posts");
-
-        // Sync and ensure mock feed posts are decorated with appropriate authorRole values
-        for (let post of dbPosts) {
-          const match = initialP.find(p => p.id === post.id);
-          if (match && !post.authorRole) {
-            post.authorRole = match.authorRole;
-            try {
-              await writeDocumentToFirestore("posts", post);
-            } catch (syncErr) {
-              console.warn(`[FIREBASE SYNC] Failed to self-heal role for post ${post.id}:`, syncErr);
-            }
-          }
-        }
-        const dbProfessors = await fetchCollectionFromFirestore<Professor>("professors");
         const dbPlacements = await fetchCollectionFromFirestore<PlacementExperience>("placementExperiences");
         const dbInternships = await fetchCollectionFromFirestore<InternshipExperience>("internshipExperiences");
         const dbTips = await fetchCollectionFromFirestore<SurvivalTip>("survivalTips");
+
         let dbMod: ModerationRecord[] = [];
         try {
           dbMod = await fetchCollectionFromFirestore<ModerationRecord>("moderationRecords");
         } catch (e) {
           console.warn("Could not retrieve moderation records on mount.", e);
+        }
+
+        // Keep professors collection synchronized with all 32 baseline professors in Firestore
+        const fetchedProfs = await fetchCollectionFromFirestore<Professor>("professors");
+        let dbProfessors = [...fetchedProfs];
+
+        if (dbProfessors.length === 0) {
+          console.log("[FIREBASE] Professors database is empty, seeding 32 baseline professors...");
+          for (const defaultProf of INITIAL_PROFESSORS) {
+            try {
+              await writeDocumentToFirestore("professors", defaultProf);
+              dbProfessors.push(defaultProf);
+            } catch (err) {
+              console.warn(`[FIREBASE] Failed to seed baseline professor ${defaultProf.name}:`, err);
+            }
+          }
+        } else if (dbProfessors.length < 32) {
+          // Sync any missing baseline professors
+          for (const defaultProf of INITIAL_PROFESSORS) {
+            const exists = dbProfessors.some(p => p.id === defaultProf.id || p.name.toLowerCase() === defaultProf.name.toLowerCase());
+            if (!exists) {
+              try {
+                await writeDocumentToFirestore("professors", defaultProf);
+                dbProfessors.push(defaultProf);
+              } catch (err) {
+                console.warn(`[FIREBASE] Failed to sync baseline professor ${defaultProf.name}:`, err);
+              }
+            }
+          }
         }
 
         const sortedPosts = [...dbPosts].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -259,12 +256,13 @@ export default function App() {
         setSurvivalTips(dbTips);
         setModerationRecords(sortedMod);
       } catch (err) {
-        console.warn("[FIREBASE SYNC FALLBACK] Loaded fallback state.", err);
-        setPosts(getSavedPosts());
-        setProfessors(getSavedProfessors());
-        setPlacements(getSavedPlacements());
-        setInternships(getSavedInternships());
-        setSurvivalTips(getSavedSurvivalTips());
+        console.error("[FIREBASE] Error during live Firestore collection loading:", err);
+        // Fall back to empty states so the site works correctly with live empty database
+        setPosts([]);
+        setProfessors(INITIAL_PROFESSORS); // Fall back to local baseline list of professors so they can still browse them
+        setPlacements([]);
+        setInternships([]);
+        setSurvivalTips([]);
         setModerationRecords([]);
       }
     }
@@ -585,21 +583,28 @@ export default function App() {
         if (record.contentType === 'post') {
           const newPost: Post = {
             id: `post-${Date.now()}`,
-            title: oData.title,
-            content: oData.content,
+            title: oData.title || "",
+            content: oData.content || "",
             department: oData.department || 'general',
             category: oData.category || 'discussion',
             upvotes: 1,
             commentsCount: 0,
-            authorName: oData.authorName,
+            authorName: oData.authorName || "Anonymous",
             isAnonymous: oData.isAnonymous || false,
             createdAt: timestamp,
             tags: oData.tags || [],
             comments: [],
             quality: 'Helpful',
-            isAiVerified: true
+            isAiVerified: true,
+            authorRole: oData.authorRole || 'Student'
           };
-          (newPost as any).studentEmail = record.studentEmail;
+          (newPost as any).studentEmail = record.studentEmail || "anonymous@rajalakshmi.edu.in";
+          
+          const valRes = validateFirestoreDocument("posts", newPost);
+          if (!valRes.valid) {
+            throw new Error(`[VALIDATION ERROR] Post document has malformed fields: ${valRes.errors.join(", ")}`);
+          }
+
           setPosts(prev => [newPost, ...prev]);
           await writeDocumentToFirestore("posts", newPost);
 
@@ -726,18 +731,68 @@ export default function App() {
     }
   };
 
+  // Local state or helper to check if an item has been upvoted (strictly 1 vote per person)
+  const checkIfVoted = (id: string): boolean => {
+    try {
+      const votedJson = localStorage.getItem('voted_items');
+      if (!votedJson) return false;
+      const arr = JSON.parse(votedJson);
+      return Array.isArray(arr) && arr.includes(id);
+    } catch {
+      return false;
+    }
+  };
+
+  const registerVote = (id: string) => {
+    try {
+      const votedJson = localStorage.getItem('voted_items');
+      let arr: string[] = [];
+      if (votedJson) {
+        arr = JSON.parse(votedJson);
+        if (!Array.isArray(arr)) arr = [];
+      }
+      if (!arr.includes(id)) {
+        arr.push(id);
+        localStorage.setItem('voted_items', JSON.stringify(arr));
+      }
+    } catch (e) {
+      console.warn("Could not save vote status:", e);
+    }
+  };
+
+  const deregisterVote = (id: string) => {
+    try {
+      const votedJson = localStorage.getItem('voted_items');
+      if (votedJson) {
+        let arr = JSON.parse(votedJson);
+        if (Array.isArray(arr)) {
+          arr = arr.filter(item => item !== id);
+          localStorage.setItem('voted_items', JSON.stringify(arr));
+        }
+      }
+    } catch (e) {
+      console.warn("Could not remove vote status:", e);
+    }
+  };
+
   // Upvote logic for posts
   const handlePostUpvote = (id: string) => {
+    const isUndo = checkIfVoted(id);
     const post = posts.find(p => p.id === id);
     const currentUpvotes = post ? post.upvotes : 0;
     const updated = posts.map(post => {
       if (post.id === id) {
-        return { ...post, upvotes: post.upvotes + 1 };
+        return { ...post, upvotes: isUndo ? Math.max(0, post.upvotes - 1) : post.upvotes + 1 };
       }
       return post;
     });
     updatePosts(updated);
-    incrementDocUpvotesFirestore("posts", id, currentUpvotes).catch(console.error);
+    if (isUndo) {
+      deregisterVote(id);
+    } else {
+      registerVote(id);
+    }
+    incrementDocUpvotesFirestore("posts", id, currentUpvotes, isUndo).catch(console.error);
   };
 
   // Submit raw student report
@@ -836,53 +891,72 @@ export default function App() {
 
   // Upvote tip
   const handleUpvoteTip = (id: string) => {
+    const isUndo = checkIfVoted(id);
     const tip = survivalTips.find(t => t.id === id);
     const currentUpvotes = tip ? tip.upvotes : 0;
     const updated = survivalTips.map(tip => {
       if (tip.id === id) {
-        return { ...tip, upvotes: tip.upvotes + 1 };
+        return { ...tip, upvotes: isUndo ? Math.max(0, tip.upvotes - 1) : tip.upvotes + 1 };
       }
       return tip;
     });
     updateSurvivalTips(updated);
-    incrementDocUpvotesFirestore("survivalTips", id, currentUpvotes).catch(console.error);
+    if (isUndo) {
+      deregisterVote(id);
+    } else {
+      registerVote(id);
+    }
+    incrementDocUpvotesFirestore("survivalTips", id, currentUpvotes, isUndo).catch(console.error);
   };
 
   // Upvote placements
   const handleUpvotePlacement = (id: string) => {
+    const isUndo = checkIfVoted(id);
     const pl = placements.find(p => p.id === id);
     const currentUpvotes = pl ? pl.upvotes : 0;
     const updated = placements.map(pl => {
       if (pl.id === id) {
-        return { ...pl, upvotes: pl.upvotes + 1 };
+        return { ...pl, upvotes: isUndo ? Math.max(0, pl.upvotes - 1) : pl.upvotes + 1 };
       }
       return pl;
     });
     updatePlacements(updated);
-    incrementDocUpvotesFirestore("placementExperiences", id, currentUpvotes).catch(console.error);
+    if (isUndo) {
+      deregisterVote(id);
+    } else {
+      registerVote(id);
+    }
+    incrementDocUpvotesFirestore("placementExperiences", id, currentUpvotes, isUndo).catch(console.error);
   };
 
   // Upvote internships
   const handleUpvoteInternship = (id: string) => {
+    const isUndo = checkIfVoted(id);
     const it = internships.find(i => i.id === id);
     const currentUpvotes = it ? it.upvotes : 0;
     const updated = internships.map(it => {
       if (it.id === id) {
-        return { ...it, upvotes: it.upvotes + 1 };
+        return { ...it, upvotes: isUndo ? Math.max(0, it.upvotes - 1) : it.upvotes + 1 };
       }
       return it;
     });
     updateInternships(updated);
-    incrementDocUpvotesFirestore("internshipExperiences", id, currentUpvotes).catch(console.error);
+    if (isUndo) {
+      deregisterVote(id);
+    } else {
+      registerVote(id);
+    }
+    incrementDocUpvotesFirestore("internshipExperiences", id, currentUpvotes, isUndo).catch(console.error);
   };
 
   // Upvote professor review comments
   const handleReviewUpvote = (profId: string, reviewId: string) => {
+    const isUndo = checkIfVoted(reviewId);
     const prof = professors.find(p => p.id === profId);
     if (!prof) return;
     const nextReviews = prof.reviews.map(r => {
       if (r.id === reviewId) {
-        return { ...r, upvotes: r.upvotes + 1 };
+        return { ...r, upvotes: isUndo ? Math.max(0, r.upvotes - 1) : r.upvotes + 1 };
       }
       return r;
     });
@@ -896,6 +970,11 @@ export default function App() {
       return prof;
     });
     updateProfessors(updated);
+    if (isUndo) {
+      deregisterVote(reviewId);
+    } else {
+      registerVote(reviewId);
+    }
     updateProfessorReviewsFirestore(profId, nextReviews).catch(console.error);
   };
 
@@ -928,20 +1007,29 @@ export default function App() {
     }
 
     const newPost: Post = {
-      ...newPostData,
+      id: `post-${Date.now()}`,
       title: cleanTitle,
       content: cleanContent,
-      authorName: cleanAuthor,
-      id: `post-${Date.now()}`,
+      department: newPostData.department || "general",
+      category: newPostData.category || "discussion",
       upvotes: 1,
       commentsCount: 0,
+      authorName: cleanAuthor,
+      isAnonymous: newPostData.isAnonymous || false,
       createdAt: new Date().toISOString(),
+      tags: newPostData.tags || [],
       comments: [],
       quality: result.quality || "Generic/Low-effort",
-      isAiVerified: result.quality === "Helpful"
+      isAiVerified: result.quality === "Helpful",
+      authorRole: newPostData.authorRole || "Student"
     };
     // Include studentEmail/authorEmail metadata for rate checks
     (newPost as any).studentEmail = targetEmail;
+
+    const valRes = validateFirestoreDocument("posts", newPost);
+    if (!valRes.valid) {
+      throw new Error(`[VALIDATION ERROR] Post document has malformed fields: ${valRes.errors.join(", ")}`);
+    }
 
     updatePosts([newPost, ...posts]);
     writeDocumentToFirestore("posts", newPost).catch(console.error);
@@ -992,15 +1080,15 @@ export default function App() {
     }
 
     const newPost: Post = {
+      id: `post-${Date.now()}`,
       title: cleanTitle,
       content: cleanContent,
-      department,
+      department: department || "general",
       category: 'Question',
-      tags,
-      isAnonymous,
+      tags: tags || [],
+      isAnonymous: isAnonymous || false,
       authorName: cleanAuthor,
-      authorRole,
-      id: `post-${Date.now()}`,
+      authorRole: authorRole || "Student",
       upvotes: 1,
       commentsCount: 0,
       createdAt: new Date().toISOString(),
@@ -1010,6 +1098,11 @@ export default function App() {
     };
 
     (newPost as any).studentEmail = targetEmail;
+
+    const valRes = validateFirestoreDocument("posts", newPost);
+    if (!valRes.valid) {
+      throw new Error(`[VALIDATION ERROR] Post document has malformed fields: ${valRes.errors.join(", ")}`);
+    }
 
     updatePosts([newPost, ...posts]);
     await writeDocumentToFirestore("posts", newPost);
@@ -1047,12 +1140,16 @@ export default function App() {
       return;
     }
 
-    const newReview = {
-      ...review,
-      content: cleanContent,
-      authorName: cleanAuthor,
+    const newReview: ProfessorReview = {
       id: `rev-${Date.now()}`,
+      content: cleanContent,
+      teaching: review.teaching || 3,
+      strictness: review.strictness || 3,
+      attendance: review.attendance || 3,
+      ease: review.ease || 3,
       upvotes: 1,
+      isAnonymous: review.isAnonymous || false,
+      authorName: cleanAuthor,
       createdAt: new Date().toISOString()
     };
 
@@ -1060,10 +1157,16 @@ export default function App() {
       const parentId = `prof-${Date.now()}`;
       const newProf: Professor = {
         id: parentId,
-        name: cleanProfName,
-        department,
+        name: cleanProfName || "Professor",
+        department: department || "Other",
         reviews: [newReview]
       };
+
+      const valRes = validateFirestoreDocument("professors", newProf);
+      if (!valRes.valid) {
+        throw new Error(`[VALIDATION ERROR] Professor document has malformed fields: ${valRes.errors.join(", ")}`);
+      }
+
       updateProfessors([newProf, ...professors]);
       writeDocumentToFirestore("professors", newProf).catch(console.error);
     } else {
@@ -1115,18 +1218,25 @@ export default function App() {
     }
 
     const newPl: PlacementExperience = {
-      ...newPlData,
+      id: `pl-${Date.now()}`,
       title: cleanTitle,
       company: cleanCompany,
       role: cleanRole,
+      ctc: newPlData.ctc || "",
       rounds: cleanRounds,
+      difficulty: newPlData.difficulty || 'Medium',
       tips: cleanTips,
       authorName: cleanAuthor,
-      id: `pl-${Date.now()}`,
-      upvotes: 1,
-      createdAt: new Date().toISOString()
+      isAnonymous: newPlData.isAnonymous || false,
+      createdAt: new Date().toISOString(),
+      upvotes: 1
     };
     (newPl as any).studentEmail = targetEmail;
+
+    const valRes = validateFirestoreDocument("placementExperiences", newPl);
+    if (!valRes.valid) {
+      throw new Error(`[VALIDATION ERROR] Placement document has malformed fields: ${valRes.errors.join(", ")}`);
+    }
 
     updatePlacements([newPl, ...placements]);
     writeDocumentToFirestore("placementExperiences", newPl).catch(console.error);
@@ -1164,19 +1274,26 @@ export default function App() {
     }
 
     const newIt: InternshipExperience = {
-      ...newItData,
+      id: `it-${Date.now()}`,
       title: cleanTitle,
       company: cleanCompany,
-      stipend: cleanStipend,
+      stipend: cleanStipend || "",
       applicationProcess: cleanAppProcess,
-      referralTips: cleanTips,
-      warning: cleanWarning,
+      referralTips: cleanTips || "",
+      warning: cleanWarning || "",
+      skillsRequired: newItData.skillsRequired || [],
       authorName: cleanAuthor,
-      id: `it-${Date.now()}`,
+      isAnonymous: newItData.isAnonymous || false,
+      createdAt: new Date().toISOString(),
       upvotes: 1,
-      createdAt: new Date().toISOString()
+      department: newItData.department || "general"
     };
     (newIt as any).studentEmail = targetEmail;
+
+    const valRes = validateFirestoreDocument("internshipExperiences", newIt);
+    if (!valRes.valid) {
+      throw new Error(`[VALIDATION ERROR] Internship document has malformed fields: ${valRes.errors.join(", ")}`);
+    }
 
     updateInternships([newIt, ...internships]);
     writeDocumentToFirestore("internshipExperiences", newIt).catch(console.error);
@@ -1210,57 +1327,26 @@ export default function App() {
     }
 
     const newTip: SurvivalTip = {
-      ...newTipData,
+      id: `tip-${Date.now()}`,
+      category: newTipData.category || 'hacks',
       title: cleanTitle,
       description: cleanDesc,
       authorName: cleanAuthorName,
-      id: `tip-${Date.now()}`,
+      isAnonymous: newTipData.isAnonymous || false,
       upvotes: 1
     };
     (newTip as any).studentEmail = targetEmail;
+
+    const valRes = validateFirestoreDocument("survivalTips", newTip);
+    if (!valRes.valid) {
+      throw new Error(`[VALIDATION ERROR] SurvivalTip document has malformed fields: ${valRes.errors.join(", ")}`);
+    }
 
     updateSurvivalTips([newTip, ...survivalTips]);
     writeDocumentToFirestore("survivalTips", newTip).catch(console.error);
   };
 
-  const handleResendTestEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resendTestRecipient.trim()) return;
-    setResendTestLoading(true);
-    setResendTestResult(null);
-    try {
-      const response = await fetch('/api/resend/send-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: resendTestRecipient,
-          subject: resendTestSubject,
-          html: resendTestHtml,
-          apiKey: resendTestKey
-        })
-      });
-      const data = await response.json();
-      setResendTestLoading(false);
-      if (data.success) {
-        setResendTestResult({
-          success: true,
-          message: data.message,
-          data: data.data
-        });
-      } else {
-        setResendTestResult({
-          success: false,
-          message: data.error || "Failed to dispatch email testing transmission."
-        });
-      }
-    } catch (err: any) {
-      setResendTestLoading(false);
-      setResendTestResult({
-        success: false,
-        message: "Failed to communicate with Resend testing endpoint. Check connection or backend logs."
-      });
-    }
-  };
+
 
   // Helper calculation for average ratings
   const getProfAggregates = (prof: Professor) => {
@@ -1312,12 +1398,23 @@ export default function App() {
   const getFilteredProfessors = () => {
     let result = professors;
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(prof => 
-        prof.name.toLowerCase().includes(q) || 
-        prof.department.toLowerCase().includes(q) ||
-        prof.reviews.some(r => r.content.toLowerCase().includes(q))
-      );
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(prof => {
+        // Direct matches in names, departments, or review contents
+        const basicMatch = (
+          prof.name.toLowerCase().includes(q) || 
+          prof.department.toLowerCase().includes(q) ||
+          prof.reviews.some(r => r.content.toLowerCase().includes(q))
+        );
+        if (basicMatch) return true;
+
+        // Map-based matches for department acronyms/aliases
+        const mappedDepts = PROFESSOR_DEPARTMENT_MAP[prof.id] || [];
+        return mappedDepts.some(dept => 
+          dept.toLowerCase() === q || 
+          dept.toLowerCase().includes(q)
+        );
+      });
     }
     return result;
   };
@@ -1515,20 +1612,14 @@ export default function App() {
                       We generated an access code. If you are a reviewer, log in using this PIN: <strong className="text-white bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700 font-mono text-xs">{sentOtp}</strong>
                     </p>
 
-                    {/* Resend Status Box */}
-                    <div className="pt-2 border-t border-slate-750 space-y-1">
+                    {/* Rajalakshmi Verification Node */}
+                    <div className="pt-2 border-t border-slate-750/30 space-y-1">
                       <span className="text-[9.5px] uppercase font-bold text-slate-400 block tracking-wide">
-                        Resend SMTP Delivery Node:
+                        Rajalakshmi Verification Node:
                       </span>
-                      {authResendDispatched ? (
-                        <p className="text-emerald-400 font-medium font-sans leading-relaxed text-[10.5px]">
-                          ✓ Mail Sent: {authResendDetails || "Standard routing completed."}
-                        </p>
-                      ) : (
-                        <p className="text-rose-300 font-normal font-sans leading-relaxed text-[10.5px]">
-                          ⚠️ Sandbox Alert: {authResendDetails || "Resend API restricted. Using simulator."}
-                        </p>
-                      )}
+                      <p className="text-slate-300 font-normal font-sans leading-relaxed text-[10.5px]">
+                        ✓ Access code generated and available for instant local development verification.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1608,6 +1699,8 @@ export default function App() {
         onUpdateManualDept={handleUpdateManualDept}
         theme={theme}
         onToggleTheme={toggleTheme}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
       />
 
       {/* Dynamic scan blocking status indicator overlay */}
@@ -1763,6 +1856,8 @@ export default function App() {
           selectedDept={selectedDept}
           setSelectedDept={setSelectedDept}
           posts={posts}
+          isOpenMobile={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
 
         {/* MAIN BODY AREA */}
@@ -1872,8 +1967,26 @@ export default function App() {
                   </div>
 
                   {getFilteredPosts().length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-200">
-                      <p className="text-xs text-slate-400 italic">No student posts match your query. Be the first to share details!</p>
+                    <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8 space-y-4 max-w-lg mx-auto">
+                      <div className="mx-auto w-12 h-12 bg-violet-50 text-violet-700 rounded-full flex items-center justify-center font-bold text-xl">
+                        📣
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-sans font-black text-slate-900 text-sm">No Student Posts</h4>
+                        <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                          {posts.length === 0 
+                            ? "This space is currently empty. Be the pioneering student to share a general update, syllabus info, or campus leak!"
+                            : "No student posts match your search or filter options. Try resetting your search query or department filters."}
+                        </p>
+                      </div>
+                      {posts.length === 0 && (
+                        <button
+                          onClick={() => setIsAddIntelOpen(true)}
+                          className="inline-flex items-center space-x-1.5 px-4 py-2 bg-violet-700 hover:bg-violet-800 text-white rounded-lg text-xs font-bold shadow-sm transition-all"
+                        >
+                          <span>📣 Create the First Post</span>
+                        </button>
+                      )}
                     </div>
                   ) : (
                     getFilteredPosts().map((post) => (
@@ -1909,8 +2022,8 @@ export default function App() {
                         <span className="text-[10px] text-slate-400">Survival Guide • Xerox & Manuals</span>
                       </a>
                       <a href="#professors" onClick={() => setCurrentTab('professors')} className="py-2.5 block hover:bg-slate-50 transition-colors">
-                        <p className="text-xs font-bold text-slate-800">Math Operations Research Dr. Senthamarai rating</p>
-                        <span className="text-[10px] text-slate-400">Professor Vault</span>
+                        <p className="text-xs font-bold text-slate-800">Who are the HODs and Professors in REC?</p>
+                        <span className="text-[10px] text-slate-400">Professor Directory</span>
                       </a>
                     </div>
                   </div>
@@ -1975,19 +2088,17 @@ export default function App() {
             />
           )}
 
-
-
           {/* SECTION 3: PROFESSOR VAULT */}
           {currentTab === 'professors' && (
             <div className="space-y-6" id="professors-screen">
-              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row justify-between gap-4">
+               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row justify-between gap-4">
                 <div className="space-y-1">
                   <h2 className="font-sans font-black text-slate-900 text-base flex items-center gap-1.5">
                     <GraduationCap className="w-5 h-5 text-violet-700" />
                     <span>The Unofficial Professor Vault</span>
                   </h2>
                   <p className="text-xs text-slate-500 font-normal">
-                    Review lecturing styles, strictness margins, and how easily they award marks. Built so you don\'t choose the wrong elective section!
+                    Review lecturing styles, strictness margins, and how easily they award marks. Built so you don't choose the wrong elective section!
                   </p>
                 </div>
                 <button
@@ -2048,7 +2159,7 @@ export default function App() {
                               </span>
                             </div>
                             <div className="space-y-0.5 text-center">
-                              <span className="text-slate-400 block font-normal">Easy Marks</span>
+                              <span className="text-slate-400 block font-normal font-sans">Easy Marks</span>
                               <span className="font-bold text-emerald-700 font-mono">
                                 {stats.ease ? `${stats.ease} / 5` : 'N/A'}
                               </span>
@@ -2090,7 +2201,7 @@ export default function App() {
 
                         <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 select-none">
                           <span>Verified against Thandalam syllabus</span>
-                          <span className="text-amber-500 font-bold font-mono">✦ Anonymous Vault</span>
+                          <span className="text-purple-650 font-bold font-mono">✦ Anonymous Vault</span>
                         </div>
                       </div>
                     );
@@ -2124,8 +2235,26 @@ export default function App() {
               {/* Placements Cards */}
               <div className="space-y-4">
                 {getFilteredPlacements().length === 0 ? (
-                  <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">
-                    <p className="text-xs text-slate-400 italic">No placement experience written yet. Click "Add Interview Story" to document Zoho or Cisco hiring!</p>
+                  <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8 space-y-4 max-w-lg mx-auto">
+                    <div className="mx-auto w-12 h-12 bg-amber-50 text-amber-700 rounded-full flex items-center justify-center font-bold text-xl animate-pulse">
+                      💼
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-sans font-black text-slate-900 text-sm">No Placement Stories Yet</h4>
+                      <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                        {placements.length === 0
+                          ? "The interview vault is empty! Be the first senior or graduate to document your hiring experience at Zoho, Cisco, TCS, or Kaar."
+                          : "No interview stories match your current search criteria."}
+                      </p>
+                    </div>
+                    {placements.length === 0 && (
+                      <button
+                        onClick={() => setIsAddPlacementOpen(true)}
+                        className="inline-flex items-center space-x-1.5 px-4 py-2 bg-violet-700 hover:bg-violet-800 text-white rounded-lg text-xs font-bold shadow-sm transition-all"
+                      >
+                        <span>💼 Post First Interview Guide</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   getFilteredPlacements().map((pl) => (
@@ -2211,8 +2340,26 @@ export default function App() {
               {/* Internships Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {getFilteredInternships().length === 0 ? (
-                  <div className="col-span-2 text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">
-                    <p className="text-xs text-slate-400 italic">No internship postings match your queries. Click "+ Add Internship experience" to post details!</p>
+                  <div className="col-span-2 text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8 space-y-4 max-w-lg mx-auto">
+                    <div className="mx-auto w-12 h-12 bg-emerald-50 text-emerald-800 rounded-full flex items-center justify-center font-bold text-xl">
+                      🎓
+                    </div>
+                    <div className="space-y-1">
+                       <h4 className="font-sans font-black text-slate-900 text-sm">No Internship Experiences Yet</h4>
+                       <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                         {internships.length === 0
+                           ? "Zero internship logs found! Be the trailblazing student to document your stipend details, test criteria, and lessons."
+                           : "No internship listings match your current search filters."}
+                       </p>
+                    </div>
+                    {internships.length === 0 && (
+                      <button
+                        onClick={() => setIsAddInternshipOpen(true)}
+                        className="inline-flex items-center space-x-1.5 px-4 py-2 bg-violet-700 hover:bg-violet-800 text-white rounded-lg text-xs font-bold shadow-sm transition-all"
+                      >
+                        <span>🎓 Share First Internship Log</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   getFilteredInternships().map((it) => (
@@ -2303,52 +2450,25 @@ export default function App() {
           {/* SECTION 8: BOOKMARKS (SAVED LIBRARY) */}
           {currentTab === 'bookmarks' && (
             <div className="space-y-6 animate-fade-in" id="bookmarks-screen">
-              {/* Header section with double-tab navigation */}
+              {/* Header section with simple personal vault view */}
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
                       <Bookmark className="w-5 h-5 text-violet-700" />
                       <h2 className="font-sans font-black text-slate-900 text-lg">
-                        Developer Hub & Personal Vault
+                        My Saved Vault & Library
                       </h2>
                     </div>
                     <p className="text-xs text-slate-500 font-normal max-w-2xl font-sans">
-                      Inspect your saved offline-friendly campus notes or manage the server-side Resend SMTP API configurations and domain verification DNS records here.
+                      Inspect your saved offline-friendly campus notes, peer reviews, or survival guide hacks here.
                     </p>
-                  </div>
-
-                  {/* Sub-Tabs Selector */}
-                  <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start md:self-auto" id="bookmarks-sub-tabs">
-                    <button
-                      onClick={() => setResendSubTab('saved')}
-                      className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center space-x-2 cursor-pointer ${
-                        resendSubTab === 'saved'
-                          ? 'bg-white text-violet-950 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      📁 My Saved Intel ({bookmarkedPosts.length + bookmarkedTips.length})
-                    </button>
-                    <button
-                      onClick={() => setResendSubTab('resend')}
-                      className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center space-x-2 cursor-pointer ${
-                        resendSubTab === 'resend'
-                          ? 'bg-white text-violet-950 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      <span>📨 Resend SMTP Center</span>
-                      <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-yellow-400 text-slate-900 font-bold uppercase tracking-tight scale-90">
-                        Live
-                      </span>
-                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Sub-Tab Content 1: Saved Intel (Bookmarks) */}
-              {resendSubTab === 'saved' && (
+              {/* Saved Intel (Bookmarks) */}
+              <div>
                 <div>
                   {bookmarkedPosts.length === 0 && bookmarkedTips.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-xs max-w-xl mx-auto space-y-4">
@@ -2444,412 +2564,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              )}
-
-              {/* Sub-Tab Content 2: Resend API Developer Suite */}
-              {resendSubTab === 'resend' && (
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fade-in" id="resend-developer-suite">
-                  {/* Left columns: DNS Tables & Verification parameters */}
-                  <div className="xl:col-span-2 space-y-6">
-                    {/* Intro card */}
-                    <div className="bg-violet-950 text-white p-6 rounded-2xl border border-violet-900 shadow-lg space-y-3 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600/10 rounded-full blur-2xl"></div>
-                      <h3 className="font-sans font-black text-sm uppercase tracking-wider text-yellow-300">
-                        Resend SMTP & Delivery Server Config
-                      </h3>
-                      <p className="text-[11.5px] leading-relaxed text-violet-100 font-sans font-normal">
-                        Your Resend implementation is integrated into the secure <strong>Thandalam Verification Gateway</strong>. It dynamically emails verification access keys to students at <strong>@rajalakshmi.edu.in</strong> end-to-end. To prevent delivery issues, check that the following DKIM, SPF, and DMARC DNS credentials are correct inside your registrar settings panel (e.g. GoDaddy, Cloudflare, Namecheap).
-                      </p>
-                    </div>
-
-                    {/* DNS Records Table */}
-                    <div className="bg-white border border-slate-205 rounded-2xl overflow-hidden shadow-xs">
-                      <div className="bg-slate-50 border-b border-slate-100 p-4">
-                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                          Required DNS verification records (DKIM, SPF, DMARC)
-                        </h4>
-                      </div>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-150 text-[10px] font-bold text-slate-400 uppercase tracking-wider select-none">
-                              <th className="p-4 w-16">Type</th>
-                              <th className="p-4 w-40">Host/Name</th>
-                              <th className="p-4">Value</th>
-                              <th className="p-4 w-20 text-center">Priority</th>
-                              <th className="p-4 w-28 text-right">Requirement</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-sans font-normal">
-                            {/* DKIM Record */}
-                            <tr className="hover:bg-slate-50/40 transition-colors">
-                              <td className="p-4">
-                                <span className="px-2 py-0.5 bg-violet-50 text-violet-700 font-mono font-bold rounded">
-                                  TXT
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center space-x-1">
-                                  <code className="bg-slate-100 p-1 rounded text-[10.5px] text-slate-700 font-mono">
-                                    resend._domainkey
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("resend._domainkey");
-                                      setCopiedCellId("host-dkim");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                                    title="Copy Host"
-                                  >
-                                    {copiedCellId === 'host-dkim' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-start space-x-1.5 max-w-xs md:max-w-md lg:max-w-lg xl:max-w-xl">
-                                  <div className="bg-slate-100 p-1 rounded font-mono text-[10px] text-slate-600 break-all truncate max-h-16 overflow-y-auto block pr-2">
-                                    p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC2sXP+CERehkkEjDGOtpgicps7HlG5ZR8bq7CBfBwDjR/9+bFD+u66+8gIpcNK76x4YL7CJ1m6AHLxcv1dD+6ttdX6wiaKooeaMzmmgWc2+V+vwiFiU5x1EpugdSv0fdnZAbzqWv2NxwW661SytScpyFCyZFrfK/a3zK/3hkw2MQIDAQAB
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC2sXP+CERehkkEjDGOtpgicps7HlG5ZR8bq7CBfBwDjR/9+bFD+u66+8gIpcNK76x4YL7CJ1m6AHLxcv1dD+6ttdX6wiaKooeaMzmmgWc2+V+vwiFiU5x1EpugdSv0fdnZAbzqWv2NxwW661SytScpyFCyZFrfK/a3zK/3hkw2MQIDAQAB");
-                                      setCopiedCellId("val-dkim");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
-                                    title="Copy Value"
-                                  >
-                                    {copiedCellId === 'val-dkim' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4 text-center text-slate-400 font-mono">-</td>
-                              <td className="p-4 text-right">
-                                <span className="px-2 py-0.5 rounded-full text-[9px] bg-red-50 text-red-700 font-bold uppercase tracking-wider">
-                                  Required (DKIM)
-                                </span>
-                              </td>
-                            </tr>
-
-                            {/* MX Record */}
-                            <tr className="hover:bg-slate-50/40 transition-colors">
-                              <td className="p-4">
-                                <span className="px-2 py-0.5 bg-amber-50 text-amber-700 font-mono font-bold rounded">
-                                  MX
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center space-x-1">
-                                  <code className="bg-slate-100 p-1 rounded text-[10.5px] text-slate-700 font-mono">
-                                    send
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("send");
-                                      setCopiedCellId("host-mx");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                                    title="Copy Host"
-                                  >
-                                    {copiedCellId === 'host-mx' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center justify-between">
-                                  <code className="bg-slate-100 p-1 rounded font-mono text-[10px] text-slate-600 truncate">
-                                    feedback-smtp.ap-northeast-1.amazonses.com
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("feedback-smtp.ap-northeast-1.amazonses.com");
-                                      setCopiedCellId("val-mx");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                                    title="Copy Value"
-                                  >
-                                    {copiedCellId === 'val-mx' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4 text-center font-mono font-bold text-slate-705">10</td>
-                              <td className="p-4 text-right">
-                                <span className="px-2 py-0.5 rounded-full text-[9px] bg-red-50 text-red-700 font-bold uppercase tracking-wider">
-                                  Required (SPF)
-                                </span>
-                              </td>
-                            </tr>
-
-                            {/* SPF Record */}
-                            <tr className="hover:bg-slate-50/40 transition-colors">
-                              <td className="p-4">
-                                <span className="px-2 py-0.5 bg-violet-50 text-violet-700 font-mono font-bold rounded">
-                                  TXT
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center space-x-1">
-                                  <code className="bg-slate-100 p-1 rounded text-[10.5px] text-slate-700 font-mono">
-                                    send
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("send");
-                                      setCopiedCellId("host-spf");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                                    title="Copy Host"
-                                  >
-                                    {copiedCellId === 'host-spf' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center justify-between">
-                                  <code className="bg-slate-100 p-1 rounded font-mono text-[10px] text-slate-600 truncate">
-                                    v=spf1 include:amazonses.com ~all
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("v=spf1 include:amazonses.com ~all");
-                                      setCopiedCellId("val-spf");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                                    title="Copy Value"
-                                  >
-                                    {copiedCellId === 'val-spf' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4 text-center text-slate-400 font-mono">-</td>
-                              <td className="p-4 text-right">
-                                <span className="px-2 py-0.5 rounded-full text-[9px] bg-red-50 text-red-700 font-bold uppercase tracking-wider">
-                                  Required (SPF)
-                                </span>
-                              </td>
-                            </tr>
-
-                            {/* DMARC Record */}
-                            <tr className="hover:bg-slate-50/40 transition-colors">
-                              <td className="p-4">
-                                <span className="px-2 py-0.5 bg-violet-50 text-violet-700 font-mono font-bold rounded">
-                                  TXT
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center space-x-1">
-                                  <code className="bg-slate-100 p-1 rounded text-[10.5px] text-slate-700 font-mono">
-                                    _dmarc
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("_dmarc");
-                                      setCopiedCellId("host-dmarc");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                                    title="Copy Host"
-                                  >
-                                    {copiedCellId === 'host-dmarc' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center justify-between">
-                                  <code className="bg-slate-100 p-1 rounded font-mono text-[10px] text-slate-600 truncate">
-                                    v=DMARC1; p=none;
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText("v=DMARC1; p=none;");
-                                      setCopiedCellId("val-dmarc");
-                                      setTimeout(() => setCopiedCellId(null), 1500);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                                    title="Copy Value"
-                                  >
-                                    {copiedCellId === 'val-dmarc' ? (
-                                      <span className="text-[9px] text-emerald-600 font-mono font-bold">Copied!</span>
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="p-4 text-center text-slate-400 font-mono">-</td>
-                              <td className="p-4 text-right">
-                                <span className="px-2 py-0.5 rounded-full text-[9px] bg-blue-50 text-blue-700 font-bold uppercase tracking-wider">
-                                  Recommended
-                                </span>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Live Email Dispatch Testing Playground */}
-                  <div className="space-y-6">
-                    <div className="bg-white border border-slate-205 p-5 rounded-2xl shadow-xs space-y-4">
-                      <div>
-                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                          <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-                          <span>Resend Dispatch Playground</span>
-                        </h4>
-                        <p className="text-[10px] text-slate-400 mt-1 font-normal leading-normal">
-                          Test actual Resend SMTP integration using your custom API Key or Sandbox fallback. 
-                        </p>
-                      </div>
-
-                      <form onSubmit={handleResendTestEmailSubmit} className="space-y-3.5 text-xs">
-                        {/* API Key overrides */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-slate-400 block tracking-wide">
-                            Resend API Key Override
-                          </label>
-                          <input
-                            type="password"
-                            placeholder="Using key: re_eUa7ZZ1x_Gc9E8iw5K72df8zLp..."
-                            value={resendTestKey}
-                            onChange={(e) => setResendTestKey(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 text-[11px] p-2 rounded-lg font-mono focus:outline-none focus:ring-1 focus:ring-violet-500 text-slate-800"
-                          />
-                          <p className="text-[9px] text-slate-450 italic">
-                            Leave empty to use active key provided or process.env.RESEND_API_KEY.
-                          </p>
-                        </div>
-
-                        {/* Recipient Input */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-slate-400 block tracking-wide">
-                            Recipient Address (To)
-                          </label>
-                          <input
-                            type="email"
-                            required
-                            placeholder="naevaspam@gmail.com"
-                            value={resendTestRecipient}
-                            onChange={(e) => setResendTestRecipient(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 text-[11px] p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500 font-sans text-slate-800"
-                          />
-                        </div>
-
-                        {/* Subject Line */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-slate-400 block tracking-wide">
-                            Email Subject
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Hello World"
-                            value={resendTestSubject}
-                            onChange={(e) => setResendTestSubject(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 text-[11px] p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500 font-sans font-medium text-slate-800"
-                          />
-                        </div>
-
-                        {/* HTML Body */}
-                        <div className="space-y-1">
-                          <label className="text-[9px] uppercase font-bold text-slate-400 block tracking-wide">
-                            HTML Email Body
-                          </label>
-                          <textarea
-                            required
-                            rows={3}
-                            value={resendTestHtml}
-                            onChange={(e) => setResendTestHtml(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 text-[11px] p-2 rounded-lg font-mono focus:outline-none focus:ring-1 focus:ring-violet-500 text-slate-800 leading-normal"
-                          />
-                        </div>
-
-                        {/* Dispatch Button */}
-                        <button
-                          type="submit"
-                          disabled={resendTestLoading}
-                          className="w-full py-2.5 bg-violet-750 hover:bg-violet-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold font-sans shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer"
-                        >
-                          {resendTestLoading ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                              <span>Delivering via Resend API...</span>
-                            </>
-                          ) : (
-                            <span>Send Live Test Email</span>
-                          )}
-                        </button>
-                      </form>
-
-                      {/* Display response status feedback */}
-                      {resendTestResult && (
-                        <div className={`p-3 rounded-xl text-[11px] border leading-normal font-sans text-left space-y-1 ${
-                          resendTestResult.success 
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-                            : 'bg-rose-50 border-rose-200 text-rose-800'
-                        }`}>
-                          <p className="font-extrabold flex items-center">
-                            {resendTestResult.success ? '✓ Dispatch Succeeded:' : '⚠️ Dispatch Rejected:'}
-                          </p>
-                          <p className="font-normal">{resendTestResult.message}</p>
-                          {resendTestResult.data && (
-                            <pre className="mt-1.5 p-1.5 rounded bg-slate-900 border border-slate-800 text-[9.5px] font-mono text-slate-300 overflow-x-auto select-all max-h-24">
-                              {JSON.stringify(resendTestResult.data, null, 2)}
-                            </pre>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* API Key configuration instruction notes */}
-                    <div className="bg-slate-50 border border-slate-205/60 p-4 rounded-xl text-[10.5px] text-slate-500 leading-relaxed space-y-1.5">
-                      <p className="font-extrabold text-slate-700">How to update Resend API Key permanently:</p>
-                      <ol className="list-decimal pl-4 space-y-1 text-[10px] font-normal">
-                        <li>Go to <strong>Settings</strong> button in the top right header of the AI Studio workspace.</li>
-                        <li>Find the <strong>Secrets Panel</strong> area.</li>
-                        <li>Bind key <code className="bg-white px-1 py-0.5 rounded border text-slate-800 font-mono">RESEND_API_KEY</code> to your real API key token (e.g. <code className="font-mono text-slate-800">re_eUa7ZZ1x_Gc9E8iw5K...</code>).</li>
-                      </ol>
-                      <p className="text-[10px] italic">
-                        The applet will automatically pick up your environment secrets immediately!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
 

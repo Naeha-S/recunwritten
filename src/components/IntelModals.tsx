@@ -66,6 +66,14 @@ export function AddIntelModal({ isOpen, onClose, onSubmit, defaultDept = 'genera
 
   const DEPARTMENTS = ['general', 'IT', 'CSE', 'AIML', 'AIDS', 'CSBS', 'ECE', 'EEE', 'Mechanical', 'Robotics', 'Other'];
 
+  const allowedDepartments = React.useMemo(() => {
+    if (!studentDept || studentDept === 'Other' || studentDept === 'general') {
+      return DEPARTMENTS;
+    }
+    // Only allow general and their respective department
+    return DEPARTMENTS.filter(d => d.toLowerCase() === 'general' || d.toLowerCase() === studentDept.toLowerCase());
+  }, [studentDept]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs select-none">
       <div className="bg-white rounded-xl shadow-2xl border border-slate-100 max-w-lg w-full max-h-[90vh] overflow-y-auto flex flex-col">
@@ -110,7 +118,7 @@ export function AddIntelModal({ isOpen, onClose, onSubmit, defaultDept = 'genera
                 onChange={(e) => setDepartment(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-xs font-normal text-slate-800 focus:ring-2 focus:ring-violet-500 focus:outline-none"
               >
-                {DEPARTMENTS.map(dept => (
+                {allowedDepartments.map(dept => (
                   <option key={dept} value={dept}>{dept === 'general' ? '🏫 General / Everyone' : `${dept} Department`}</option>
                 ))}
               </select>

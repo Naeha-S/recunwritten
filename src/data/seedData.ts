@@ -229,105 +229,648 @@ export const INITIAL_POSTS: Post[] = [
 export const INITIAL_PROFESSORS: Professor[] = [
   {
     id: 'prof-1',
-    name: 'Dr. Priya Srinivasan',
-    department: 'CSE',
+    name: 'Dr. S.N.Murugesan (Principal)',
+    department: 'Rajalakshmi Engineering College',
     reviews: [
       {
         id: 'rev-1-1',
-        content: 'Outstanding teaching! She explains Data Structures using highly applicable day-to-day objects. Attendance policy is standard 75% required, but if you genuinely pay attention, she rewards with generous internal grades.',
+        content: 'Chairman of the Academic Council. Under his leadership, the curriculum is regularly updated to align with modern industry standards. Strict about campus discipline and academic integrity.',
         teaching: 5,
-        strictness: 2,
-        attendance: 3,
-        ease: 4,
-        upvotes: 18,
-        isAnonymous: true,
-        authorName: 'Anonymous Student',
-        createdAt: '2026-05-15T11:00:00Z'
-      },
-      {
-        id: 'rev-1-2',
-        content: 'She is friendly during lab sessions but gets strict if you don\'t submit your worksheets on time. Just follow standard instructions and you will score well.',
-        teaching: 4,
-        strictness: 3,
+        strictness: 4,
         attendance: 4,
-        ease: 4,
-        upvotes: 9,
-        isAnonymous: false,
-        authorName: 'Siddharth R',
-        createdAt: '2026-05-20T08:30:00Z'
+        ease: 3,
+        upvotes: 12,
+        isAnonymous: true,
+        authorName: 'Academic Office',
+        createdAt: '2026-05-15T11:00:00Z'
       }
     ]
   },
   {
     id: 'prof-2',
-    name: 'Dr. G. Ramesh (ECE Lab Expert)',
-    department: 'ECE',
+    name: 'Dr. S.R.Devadasan',
+    department: 'PSG College of Technology',
     reviews: [
       {
         id: 'rev-2-1',
-        content: 'Very strict attendance. If you are even 2 minutes late to the ECE lab block, he will mark you absent for the whole session. Teaching is incredibly detailed but his assignment workload is high. Highly recommend studying the manual beforehand!',
-        teaching: 4,
-        strictness: 5,
-        attendance: 5,
-        ease: 2,
-        upvotes: 25,
+        content: 'University Representative and Professor of Production Engineering. Known for contributing valuable insights on manufacturing practices and structural curriculum reforms.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 4,
+        ease: 4,
+        upvotes: 8,
         isAnonymous: true,
-        authorName: 'Anonymous Student',
-        createdAt: '2026-05-10T12:00:00Z'
-      },
-      {
-        id: 'rev-2-2',
-        content: 'Strict but clean. If you display actual curiosity and neat layout connection on the breadboard, his questions in viva are pleasant. If you copy records, you are in big trouble.',
-        teaching: 3,
-        strictness: 4,
-        attendance: 5,
-        ease: 3,
-        upvotes: 11,
-        isAnonymous: false,
-        authorName: 'Keerthana Sundar',
-        createdAt: '2026-05-22T06:40:00Z'
+        authorName: 'Academic Office',
+        createdAt: '2026-05-18T10:00:00Z'
       }
     ]
   },
   {
     id: 'prof-3',
-    name: 'Dr. Senthamarai Selvi (Math)',
-    department: 'IT',
+    name: 'Dr. R. Senthil',
+    department: 'CEG Campus, Anna University',
     reviews: [
       {
         id: 'rev-3-1',
-        content: 'The savior for Mathematics and Operations Research! Beautiful handwriting on blackboard. Her unit notes are literally what stays in CAT. Highly student-friendly. Highly recommend taking her sections!',
-        teaching: 5,
-        strictness: 2,
-        attendance: 2,
-        ease: 5,
-        upvotes: 33,
-        isAnonymous: false,
-        authorName: 'Aishwarya_IT',
-        createdAt: '2026-05-21T02:00:00Z'
+        content: 'University Representative and Professor of Civil Engineering. Highly supportive of structural research initiatives and advocates for practical site exposure.',
+        teaching: 4,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 9,
+        isAnonymous: true,
+        authorName: 'Academic Office',
+        createdAt: '2026-05-20T09:00:00Z'
       }
     ]
   },
   {
     id: 'prof-4',
-    name: 'Prof. K. Jagadeesan',
-    department: 'Mechanical',
+    name: 'Dr. S.Balasivanandha Prabhu',
+    department: 'CEG Campus, Anna University',
     reviews: [
       {
         id: 'rev-4-1',
-        content: 'Legendary mechanical teaching. He can draw complex system engines from memory perfectly. He hates mobile phone usage in class. Just place your phone in the bag and appreciate the lecturing.',
+        content: 'University Representative and Professor & Head, Department of Mechanical Engineering. Emphasizes robust engineering basics and strict compliance with academic rubrics.',
+        teaching: 5,
+        strictness: 4,
+        attendance: 5,
+        ease: 3,
+        upvotes: 11,
+        isAnonymous: true,
+        authorName: 'Academic Office',
+        createdAt: '2026-05-22T08:30:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-5',
+    name: 'Dr. Suceendran K.M.',
+    department: 'TCS, Chennai',
+    reviews: [
+      {
+        id: 'rev-5-1',
+        content: 'Industry Representative, Techno HR Leader & Head - Academic Alliances. Critical contributor of contemporary placement strategies, enterprise skillsets, and digital transformation workshops.',
+        teaching: 5,
+        strictness: 2,
+        attendance: 3,
+        ease: 5,
+        upvotes: 15,
+        isAnonymous: true,
+        authorName: 'Placement Coordinator',
+        createdAt: '2026-05-24T12:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-6',
+    name: 'Prof. Satyanarayanan R. Chakravarthy',
+    department: 'IITM, Chennai',
+    reviews: [
+      {
+        id: 'rev-6-1',
+        content: 'Industry Representative and Professor of Aerospace Engineering. Strongly encourages student startup initiatives, research funding, and deep-tech incubation setups on campus.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 14,
+        isAnonymous: true,
+        authorName: 'Research Fellow',
+        createdAt: '2026-05-25T11:40:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-7',
+    name: 'Dr. C.R. Muthukrishnan',
+    department: 'Academician',
+    reviews: [
+      {
+        id: 'rev-7-1',
+        content: 'Distinguished Academician. He is meticulous with curriculum architecture and is focused on building high academic benchmarks for autonomous programs.',
         teaching: 5,
         strictness: 4,
         attendance: 4,
         ease: 3,
-        upvotes: 19,
+        upvotes: 7,
+        isAnonymous: true,
+        authorName: 'Academic Office',
+        createdAt: '2026-05-26T10:15:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-8',
+    name: 'Dr. M. Subbiah',
+    department: 'Academician',
+    reviews: [
+      {
+        id: 'rev-8-1',
+        content: 'Experienced Academician. Active contributor to core syllabus revisions. Highly respected for his pedagogy and structural approach to engineering courses.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 6,
+        isAnonymous: true,
+        authorName: 'Academic Office',
+        createdAt: '2026-05-28T09:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-9',
+    name: 'Dr. R. Karthikeyan',
+    department: 'Controller of Examinations, REC',
+    reviews: [
+      {
+        id: 'rev-9-1',
+        content: 'Authoritative head of everything related to CAT schedules, sem-end exams, and autonomous grade sheets. Extremely strict security protocols during evaluations.',
+        teaching: 4,
+        strictness: 5,
+        attendance: 5,
+        ease: 2,
+        upvotes: 21,
         isAnonymous: true,
         authorName: 'Anonymous Student',
-        createdAt: '2026-05-25T15:30:00Z'
+        createdAt: '2026-05-30T14:30:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-10',
+    name: 'Dr. Suresh Chandra Khandai',
+    department: 'Aeronautical Engineering',
+    reviews: [
+      {
+        id: 'rev-10-1',
+        content: 'Professor & HoD of Aeronautical. Very systematic and professional. Highly supportive of student aerospace design projects.',
+        teaching: 4,
+        strictness: 4,
+        attendance: 4,
+        ease: 3,
+        upvotes: 5,
+        isAnonymous: false,
+        authorName: 'Aero Boy',
+        createdAt: '2026-06-01T10:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-11',
+    name: 'Dr. S. Baghavathi Priya',
+    department: 'AI and ML',
+    reviews: [
+      {
+        id: 'rev-11-1',
+        content: 'Professor & HoD of AIML. Enthusiastic about hackathons, modern AI methodologies, and collaborative machine learning projects. She pushes her students to publish research.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 4,
+        ease: 4,
+        upvotes: 11,
+        isAnonymous: false,
+        authorName: 'AIML Club',
+        createdAt: '2026-06-02T11:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-12',
+    name: 'Dr. K. Bhaskar',
+    department: 'Automobile Engineering',
+    reviews: [
+      {
+        id: 'rev-12-1',
+        content: 'Professor & HoD of Automobile. Deeply knowledgeable. He takes great pride in REC formula racing student projects and workshops.',
+        teaching: 4,
+        strictness: 3,
+        attendance: 4,
+        ease: 3,
+        upvotes: 4,
+        isAnonymous: true,
+        authorName: 'Anonymous Student',
+        createdAt: '2026-06-03T09:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-13',
+    name: 'Dr. S. Rajkumar',
+    department: 'Biomedical Engineering',
+    reviews: [
+      {
+        id: 'rev-13-1',
+        content: 'Professor & HoD of Biomedical. Meticulous with internal assignments and lab files. Supportive of interdisciplinary healthcare projects.',
+        teaching: 4,
+        strictness: 4,
+        attendance: 4,
+        ease: 3,
+        upvotes: 6,
+        isAnonymous: true,
+        authorName: 'Anonymous Student',
+        createdAt: '2026-06-03T11:20:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-14',
+    name: 'Dr. K. Sathya',
+    department: 'Biotechnology',
+    reviews: [
+      {
+        id: 'rev-14-1',
+        content: 'Professor & HoD of Biotech. Demands neatness in lab records, observation logs and safety protocols. Outstanding industrial guidance.',
+        teaching: 5,
+        strictness: 4,
+        attendance: 4,
+        ease: 4,
+        upvotes: 7,
+        isAnonymous: false,
+        authorName: 'Bt Student',
+        createdAt: '2026-06-04T08:15:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-15',
+    name: 'Dr. K. Nagarajan',
+    department: 'Chemical Engineering',
+    reviews: [
+      {
+        id: 'rev-15-1',
+        content: 'Professor & HoD of Chemical. Focuses heavily on mass transfer, reactor design basics and industrial factory parameters.',
+        teaching: 4,
+        strictness: 3,
+        attendance: 4,
+        ease: 3,
+        upvotes: 5,
+        isAnonymous: true,
+        authorName: 'Anonymous Student',
+        createdAt: '2026-06-04T12:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-16',
+    name: 'Dr. S. Geetha',
+    department: 'Civil Engineering',
+    reviews: [
+      {
+        id: 'rev-16-1',
+        content: 'Professor & HoD of Civil. Professional structural engineering expert. Believes in strict field visits and design validation codes.',
+        teaching: 4,
+        strictness: 4,
+        attendance: 4,
+        ease: 3,
+        upvotes: 6,
+        isAnonymous: true,
+        authorName: 'Anonymous Student',
+        createdAt: '2026-06-05T09:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-17',
+    name: 'Dr. K. Devaki',
+    department: 'Computer Science and Business Systems',
+    reviews: [
+      {
+        id: 'rev-17-1',
+        content: 'Professor & HoD of CSBS. Encourages solid corporate reasoning, case studies, and dual focus on business strategies along with computer science.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 9,
+        isAnonymous: false,
+        authorName: 'CSBS Junior',
+        createdAt: '2026-06-05T13:45:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-18',
+    name: 'Dr. P. Revathy',
+    department: 'Computer Science and Design',
+    reviews: [
+      {
+        id: 'rev-18-1',
+        content: 'Professor & HoD of CSD. Inspires creative application UI design, rich interaction pipelines, and human-computer UI research.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 8,
+        isAnonymous: true,
+        authorName: 'CSD Geek',
+        createdAt: '2026-06-06T10:15:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-19',
+    name: 'Dr. P. Kumar',
+    department: 'Computer Science and Engineering',
+    reviews: [
+      {
+        id: 'rev-19-1',
+        content: 'Professor & HoD of CSE. He wants deep expertise in Data Structures, OS, and cloud frameworks. Strongly supports hackathon developers.',
+        teaching: 5,
+        strictness: 4,
+        attendance: 4,
+        ease: 3,
+        upvotes: 15,
+        isAnonymous: false,
+        authorName: 'CSE Lead',
+        createdAt: '2026-06-06T15:30:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-20',
+    name: 'Dr. M. Palanivelan',
+    department: 'Electronics and Communication Engineering',
+    reviews: [
+      {
+        id: 'rev-20-1',
+        content: 'Professor & HoD of ECE. Strict about electronics lab logs and equipment safety, but highly helpful if you show genuine research interest.',
+        teaching: 4,
+        strictness: 4,
+        attendance: 5,
+        ease: 3,
+        upvotes: 11,
+        isAnonymous: true,
+        authorName: 'ECE Alum',
+        createdAt: '2026-06-07T08:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-21',
+    name: 'Dr. C. Kamalakannan',
+    department: 'Electrical and Electronics Engineering',
+    reviews: [
+      {
+        id: 'rev-21-1',
+        content: 'Professor & HoD of EEE. Believes in solid power electronics basics, clean circuits and mathematical analytical derivations.',
+        teaching: 4,
+        strictness: 4,
+        attendance: 4,
+        ease: 3,
+        upvotes: 8,
+        isAnonymous: true,
+        authorName: 'EEE Student',
+        createdAt: '2026-06-07T11:40:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-22',
+    name: 'Dr. K. Ramalakshmi',
+    department: 'Food Technology',
+    reviews: [
+      {
+        id: 'rev-22-1',
+        content: 'Professor & HoD of Food Tech. Guides on food preservation standards, biochemistry and processing metrics. Very encouraging.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 6,
+        isAnonymous: false,
+        authorName: 'FT Cadet',
+        createdAt: '2026-06-07T14:15:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-23',
+    name: 'Dr. Priya Vijay',
+    department: 'Information Technology',
+    reviews: [
+      {
+        id: 'rev-23-1',
+        content: 'Professor & HoD of IT. Extremely supportive of technical placement drives, coding bootcamps, and cloud labs. Always pushes for high standards.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 4,
+        ease: 4,
+        upvotes: 13,
+        isAnonymous: false,
+        authorName: 'IT Senior',
+        createdAt: '2026-06-08T09:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-24',
+    name: 'Dr. S.P. Srinivasan',
+    department: 'Mechanical Engineering',
+    reviews: [
+      {
+        id: 'rev-24-1',
+        content: 'Professor & HoD of Mechanical. Strict dress code advocate (formals, clean shave), but an extraordinary teacher of heat transfer and mechanics.',
+        teaching: 5,
+        strictness: 4,
+        attendance: 4,
+        ease: 3,
+        upvotes: 12,
+        isAnonymous: true,
+        authorName: 'Mech Boy',
+        createdAt: '2026-06-08T12:30:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-25',
+    name: 'Dr. V. Santhanam',
+    department: 'Mechatronics Engineering',
+    reviews: [
+      {
+        id: 'rev-25-1',
+        content: 'Professor & HoD of Mechatronics. Pushes students to build hands-on physical sensor control loops and fluid power systems.',
+        teaching: 4,
+        strictness: 3,
+        attendance: 4,
+        ease: 4,
+        upvotes: 6,
+        isAnonymous: true,
+        authorName: 'Mct Student',
+        createdAt: '2026-06-08T15:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-26',
+    name: 'Dr. R. Giri',
+    department: 'Robotics and Automation',
+    reviews: [
+      {
+        id: 'rev-26-1',
+        content: 'Professor & HoD of Robotics and Automation. Very enthusiastic about robot mechanics, ROS coding, and automatic sensor feedback loops.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 4,
+        ease: 4,
+        upvotes: 11,
+        isAnonymous: false,
+        authorName: 'Robo Builder',
+        createdAt: '2026-06-09T08:30:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-27',
+    name: 'Dr. M.Uma Raman',
+    department: 'Management Studies',
+    reviews: [
+      {
+        id: 'rev-27-1',
+        content: 'Professor & HoD of Management Studies. Extremely business-focused with regular case studies, corporate roleplay, and strategy sessions.',
+        teaching: 4,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 5,
+        isAnonymous: true,
+        authorName: 'MBA Student',
+        createdAt: '2026-06-09T11:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-28',
+    name: 'Dr. M. Muthusamy',
+    department: 'Humanities & Sciences',
+    reviews: [
+      {
+        id: 'rev-28-1',
+        content: 'Professor & HoD of Humanities & Sciences. Guides first-year cohorts in basic physics/chemistry, laying a solid foundation for core engineering paths.',
+        teaching: 4,
+        strictness: 3,
+        attendance: 4,
+        ease: 3,
+        upvotes: 14,
+        isAnonymous: true,
+        authorName: 'First Year Cadet',
+        createdAt: '2026-06-09T14:15:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-29',
+    name: 'Dr. V. Prasannakumari',
+    department: 'Teacher\'s Representative',
+    reviews: [
+      {
+        id: 'rev-29-1',
+        content: 'Teacher Representative of Council. Advocates for innovative technological tools in teaching, digital learning portals, and student feedback integrations.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 8,
+        isAnonymous: true,
+        authorName: 'Staff Helper',
+        createdAt: '2026-06-09T17:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-30',
+    name: 'Dr. Johanna Rajkumar',
+    department: 'Teacher\'s Representative',
+    reviews: [
+      {
+        id: 'rev-30-1',
+        content: 'Teacher Representative & Dean of Biotech. An extraordinary pillar of biotechnology education. She is highly student-centric and values quality research work.',
+        teaching: 5,
+        strictness: 3,
+        attendance: 3,
+        ease: 4,
+        upvotes: 14,
+        isAnonymous: false,
+        authorName: 'Bio Enthusiast',
+        createdAt: '2026-06-10T09:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-31',
+    name: 'Mr. I. Philip Praveen',
+    department: 'Teacher\'s Representative',
+    reviews: [
+      {
+        id: 'rev-31-1',
+        content: 'Teacher Representative in the council. Very approachable, always supportive of career-oriented student groups and placement preparations.',
+        teaching: 5,
+        strictness: 2,
+        attendance: 3,
+        ease: 4,
+        upvotes: 9,
+        isAnonymous: true,
+        authorName: 'Cadet Advisor',
+        createdAt: '2026-06-10T11:30:00Z'
+      }
+    ]
+  },
+  {
+    id: 'prof-32',
+    name: 'Dr. V. Murali Bhaskaran',
+    department: 'Member Secretary & Dean (Academics)',
+    reviews: [
+      {
+        id: 'rev-32-1',
+        content: 'Dean of Academics. Architect of curriculum regulations. Strong focus on outcome-based education, industry integrations, and rigorous semester frameworks.',
+        teaching: 5,
+        strictness: 4,
+        attendance: 4,
+        ease: 3,
+        upvotes: 18,
+        isAnonymous: false,
+        authorName: 'Dean Coordinator',
+        createdAt: '2026-06-10T14:45:00Z'
       }
     ]
   }
 ];
+
+export const PROFESSOR_DEPARTMENT_MAP: Record<string, string[]> = {
+  'prof-1': ['IT', 'Information Technology', 'CSE', 'Computer Science', 'AIML', 'AIDS', 'CSBS', 'ECE', 'EEE', 'MECH', 'Mechanical', 'ROBO', 'Robotics', 'AERO', 'BME', 'BT', 'CHEM', 'CIVIL', 'FT', 'MBA', 'H&S', 'OTHER'],
+  'prof-2': ['MECH', 'Mechanical', 'Production', 'PSG'],
+  'prof-3': ['CIVIL', 'Civil', 'CEG'],
+  'prof-4': ['MECH', 'Mechanical', 'CEG'],
+  'prof-5': ['CSE', 'Computer Science', 'IT', 'Information Technology', 'TCS'],
+  'prof-6': ['MECH', 'Mechanical', 'Aerospace', 'IITM'],
+  'prof-7': ['CSE', 'Computer Science', 'IT', 'Information Technology'],
+  'prof-8': ['EEE', 'Electrical', 'ECE', 'Electronics'],
+  'prof-9': ['IT', 'CSE', 'AIML', 'AIDS', 'CSBS', 'ECE', 'EEE', 'MECH', 'ROBO', 'COE', 'Examinations'],
+  'prof-10': ['AERO', 'Aeronautical', 'Aerospace'],
+  'prof-11': ['AIML', 'AI', 'ML', 'Artificial Intelligence', 'Machine Learning'],
+  'prof-12': ['MECH', 'Mechanical', 'Automobile', 'Motor'],
+  'prof-13': ['BME', 'Biomedical', 'Healthcare'],
+  'prof-14': ['BT', 'Biotech', 'Biotechnology'],
+  'prof-15': ['CHEM', 'Chemical'],
+  'prof-16': ['CIVIL', 'Civil'],
+  'prof-17': ['CSBS', 'Computer Science', 'Business Systems', 'CSE'],
+  'prof-18': ['CSE', 'Computer Science', 'Design', 'CSD'],
+  'prof-19': ['CSE', 'Computer Science'],
+  'prof-20': ['ECE', 'Electronics', 'Communication'],
+  'prof-21': ['EEE', 'Electrical'],
+  'prof-22': ['FT', 'Food', 'Technology'],
+  'prof-23': ['IT', 'Information Technology'],
+  'prof-24': ['MECH', 'Mechanical'],
+  'prof-25': ['MECH', 'Mechanical', 'Mechatronics'],
+  'prof-26': ['ROBO', 'Robotics', 'Automation'],
+  'prof-27': ['MBA', 'Management', 'Business'],
+  'prof-28': ['H&S', 'Humanities', 'Sciences', 'Physics', 'Chemistry', 'Math', 'English'],
+  'prof-29': ['IT', 'Information Technology', 'CSE', 'Computer Science'],
+  'prof-30': ['BT', 'Biotech', 'Biotechnology'],
+  'prof-31': ['H&S', 'Humanities', 'Sciences'],
+  'prof-32': ['CSE', 'Computer Science', 'Dean', 'Academics']
+};
 
 export const INITIAL_PLACEMENTS: PlacementExperience[] = [
   {

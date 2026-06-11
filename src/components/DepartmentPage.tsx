@@ -362,12 +362,36 @@ export default function DepartmentPage({
                   {selectedDept} Discussion Board
                 </h3>
                 {selectedDept && (
-                  <button 
-                    onClick={() => setIsAddIntelOpen(true)}
-                    className="text-xs font-bold text-violet-700 hover:text-white bg-violet-50 hover:bg-violet-750 px-3 py-1.5 rounded-lg border border-violet-100 transition-all shadow-2xs cursor-pointer flex items-center gap-1"
-                  >
-                    🚀 Post inside r/{selectedDept.toLowerCase()}
-                  </button>
+                  (() => {
+                    const isDeptLocked = studentDept && studentDept !== 'Other' && studentDept !== 'general' && studentDept.toLowerCase() !== selectedDept.toLowerCase();
+                    return (
+                      <button 
+                        onClick={() => {
+                          if (!isDeptLocked) {
+                            setIsAddIntelOpen(true);
+                          }
+                        }}
+                        disabled={!!isDeptLocked}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all shadow-2xs flex items-center gap-1 ${
+                          isDeptLocked 
+                            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'text-violet-700 hover:text-white bg-violet-50 hover:bg-violet-750 border-violet-100 cursor-pointer'
+                        }`}
+                        title={isDeptLocked ? `Locked: Only ${selectedDept} Department members can post.` : undefined}
+                      >
+                        {isDeptLocked ? (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-slate-400" />
+                            <span>r/{selectedDept.toLowerCase()} Locked</span>
+                          </>
+                        ) : (
+                          <>
+                            🚀 Post inside r/{selectedDept.toLowerCase()}
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()
                 )}
               </div>
 

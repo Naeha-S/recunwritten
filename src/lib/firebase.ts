@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { 
   initializeFirestore,
   collection,
@@ -7,7 +7,6 @@ import {
   doc,
   setDoc,
   updateDoc,
-  arrayUnion,
   deleteDoc
 } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
@@ -25,114 +24,266 @@ const app = initializeApp({
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId || "(default)");
 
-// Helper to sign in anonymously to satisfy Firestore Security Rules
-export async function authenticateFirebaseAnonymously(): Promise<void> {
-  try {
-    if (!auth.currentUser) {
-      await signInAnonymously(auth);
-      console.log("[FIREBASE] Signed in anonymously successfully!");
-    }
-  } catch (err) {
-    console.warn("[FIREBASE AUTH ERROR] Failed to sign in anonymously:", err);
+// ----------------------------------------------------------------------------
+// ERROR HANDLER & TYPES AS SPECIFIED IN THE INTEGRATION SKILL
+// ----------------------------------------------------------------------------
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
   }
 }
 
-// 1. Generic Fetcher with local fallbacks if empty or error
-export async function fetchCollectionFromFirestore<T>(collectionName: string): Promise<T[]> {
-  try {
-    await authenticateFirebaseAnonymously();
-    const colRef = collection(db, collectionName);
-    const snap = await getDocs(colRef);
-    const items: any[] = [];
-    snap.forEach((docSnap) => {
-      items.push({ id: docSnap.id, ...docSnap.data() });
-    });
-    return items as T[];
-  } catch (err) {
-    console.warn(`[FIREBASE] Failed to fetch collection ${collectionName} from Firestore.`, err);
-    throw err;
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const originalMessage = error instanceof Error ? error.message : String(error);
+  
+  // Distinguish permissions vs network/other errors with descriptive indicators
+  let descriptiveError = originalMessage;
+  const isPermissionError = originalMessage.toLowerCase().includes("permission") || 
+                            originalMessage.toLowerCase().includes("insufficient") ||
+                            originalMessage.toLowerCase().includes("restricted");
+
+  const isNetworkError = originalMessage.toLowerCase().includes("offline") || 
+                         originalMessage.toLowerCase().includes("network") || 
+                         originalMessage.toLowerCase().includes("failed to connect") ||
+                         originalMessage.toLowerCase().includes("websocket") ||
+                         originalMessage.toLowerCase().includes("unavailable");
+
+  if (isPermissionError) {
+    descriptiveError = `Rule-based Access Denied (PERMISSION_DENIED): The requested operation '${operationType}' on path '${path}' was blocked by Firestore Security Rules. Public read/write should be enabled in the development environment rules.`;
+  } else if (isNetworkError) {
+    descriptiveError = `Network Connectivity Failure (OFFLINE): Firestore is unable to reach the server. Please check your internet connection, proxy settings, or firewall rules.`;
+  } else {
+    descriptiveError = `Firestore Operation Error: ${originalMessage}`;
   }
+
+  const errInfo: FirestoreErrorInfo = {
+    error: descriptiveError,
+    authInfo: {
+      userId: auth.currentUser?.uid || null,
+      email: auth.currentUser?.email || null,
+      emailVerified: auth.currentUser?.emailVerified || null,
+      isAnonymous: auth.currentUser?.isAnonymous || null,
+      tenantId: auth.currentUser?.tenantId || null,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+
+  console.error('[FIREBASE DETAIL ERROR LOG]:', JSON.stringify(errInfo, null, 2));
+  
+  // Throwing stringified JSON so the calling developer/environment can easily parse
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Utility to clean objects of any properties that have undefined values
+export function sanitizeForFirestore<T>(data: T): T {
+  if (data === undefined || data === null) {
+    return null as any;
+  }
+  return JSON.parse(JSON.stringify(data)) as T;
+}
+
+// Data validation utility checking if all required fields are present and not undefined
+export function validateFirestoreDocument(collectionName: string, data: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!data || typeof data !== 'object') {
+    errors.push("Document data must be a non-null object.");
+    return { valid: false, errors };
+  }
+
+  // Base field checking
+  if (data.id === undefined) {
+    errors.push("Missing required field: 'id'");
+  }
+
+  if (collectionName === "posts") {
+    const requiredFields = ['title', 'content', 'department', 'category', 'authorName', 'isAnonymous', 'createdAt'];
+    for (const field of requiredFields) {
+      if (data[field] === undefined) {
+        errors.push(`Post is missing required field or it is undefined: '${field}'`);
+      }
+    }
+  } else if (collectionName === "survivalTips") {
+    const requiredFields = ['category', 'title', 'description', 'authorName', 'isAnonymous'];
+    for (const field of requiredFields) {
+      if (data[field] === undefined) {
+        errors.push(`SurvivalTip is missing required field or it is undefined: '${field}'`);
+      }
+    }
+  } else if (collectionName === "professors") {
+    const requiredFields = ['name', 'department', 'reviews'];
+    for (const field of requiredFields) {
+      if (data[field] === undefined) {
+        errors.push(`Professor is missing required field or it is undefined: '${field}'`);
+      }
+    }
+  } else if (collectionName === "placementExperiences") {
+    const requiredFields = ['title', 'company', 'role', 'rounds', 'tips', 'authorName', 'isAnonymous', 'createdAt'];
+    for (const field of requiredFields) {
+      if (data[field] === undefined) {
+        errors.push(`PlacementExperience is missing required field or it is undefined: '${field}'`);
+      }
+    }
+  } else if (collectionName === "internshipExperiences") {
+    const requiredFields = ['title', 'company', 'applicationProcess', 'authorName', 'isAnonymous', 'createdAt'];
+    for (const field of requiredFields) {
+      if (data[field] === undefined) {
+        errors.push(`InternshipExperience is missing required field or it is undefined: '${field}'`);
+      }
+    }
+  } else if (collectionName === "moderationRecords") {
+    const requiredFields = ['contentType', 'title', 'content', 'authorName', 'isAnonymous', 'studentEmail', 'createdAt', 'blockedReason', 'status', 'originalData', 'auditHistory'];
+    for (const field of requiredFields) {
+      if (data[field] === undefined) {
+        errors.push(`ModerationRecord is missing required field or it is undefined: '${field}'`);
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+// ----------------------------------------------------------------------------
+// INTERACTIVE FIRESTORE SERVICES WITH RETRY & DESCRIPTIVE FAILURES
+// ----------------------------------------------------------------------------
+
+// 1. Generic Fetcher with local fallbacks, retry logic and detailed error parsing
+export async function fetchCollectionFromFirestore<T>(collectionName: string): Promise<T[]> {
+  const maxRetries = 3;
+  let attempt = 0;
+  let lastError: any = null;
+
+  while (attempt < maxRetries) {
+    try {
+      const colRef = collection(db, collectionName);
+      const snap = await getDocs(colRef);
+      const items: any[] = [];
+      snap.forEach((docSnap) => {
+        items.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      return items as T[];
+    } catch (err: any) {
+      lastError = err;
+      const errMsg = err instanceof Error ? err.message : String(err);
+      
+      const isPermissionOrAuthError = errMsg.toLowerCase().includes("permission") || 
+                                      errMsg.toLowerCase().includes("insufficient") ||
+                                      errMsg.toLowerCase().includes("restricted");
+
+      // Stop retrying immediately if it's a security/permission failure
+      if (isPermissionOrAuthError) {
+        break;
+      }
+      
+      attempt++;
+      if (attempt < maxRetries) {
+        console.warn(`[FIREBASE RETRY] Attempt ${attempt}/${maxRetries} for collection '${collectionName}' failed. Retrying in ${attempt * 500}ms...`, err);
+        await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      }
+    }
+  }
+
+  handleFirestoreError(lastError, OperationType.LIST, collectionName);
 }
 
 // 2. Generic Creator
 export async function writeDocumentToFirestore<T extends { id: string }>(collectionName: string, item: T): Promise<void> {
+  console.log(`[FIREBASE DIAGNOSTIC] Pre-write diagnostic log for collection '${collectionName}' with id '${item?.id}':`, JSON.stringify(item, null, 2));
   try {
-    await authenticateFirebaseAnonymously();
-    const docRef = doc(db, collectionName, item.id);
-    await setDoc(docRef, item);
-    console.log(`[FIREBASE] Saved document to ${collectionName}/${item.id} successfully!`);
+    const sanitized = sanitizeForFirestore(item);
+    const docRef = doc(db, collectionName, sanitized.id);
+    await setDoc(docRef, sanitized);
+    console.log(`[FIREBASE] Saved document to ${collectionName}/${sanitized.id} successfully!`);
   } catch (err) {
-    console.warn(`[FIREBASE] Failed to write document to ${collectionName}/${item.id}.`, err);
-    throw err;
+    handleFirestoreError(err, OperationType.WRITE, `${collectionName}/${item.id}`);
   }
 }
 
 // 2.5 Document Deleter
 export async function deleteDocumentFromFirestore(collectionName: string, docId: string): Promise<void> {
   try {
-    await authenticateFirebaseAnonymously();
     const docRef = doc(db, collectionName, docId);
     await deleteDoc(docRef);
     console.log(`[FIREBASE] Deleted document ${collectionName}/${docId} successfully!`);
   } catch (err) {
-    console.warn(`[FIREBASE] Failed to delete document ${collectionName}/${docId}.`, err);
-    throw err;
+    handleFirestoreError(err, OperationType.DELETE, `${collectionName}/${docId}`);
   }
 }
 
-// 3. Upvoter
-export async function incrementDocUpvotesFirestore(collectionName: string, docId: string, currentUpvotes: number): Promise<void> {
+// 3. Upvoter (supports undo/decrement)
+export async function incrementDocUpvotesFirestore(collectionName: string, docId: string, currentUpvotes: number, isUndo?: boolean): Promise<void> {
   try {
-    await authenticateFirebaseAnonymously();
     const docRef = doc(db, collectionName, docId);
     await updateDoc(docRef, {
-      upvotes: currentUpvotes + 1
+      upvotes: isUndo ? Math.max(0, currentUpvotes - 1) : currentUpvotes + 1
     });
   } catch (err) {
-    console.warn(`[FIREBASE] Failed to upvote document ${collectionName}/${docId}.`, err);
-    throw err;
+    handleFirestoreError(err, OperationType.UPDATE, `${collectionName}/${docId}`);
   }
 }
 
 // 4. Update core post with comments
 export async function updatePostCommentsFirestore(postId: string, comments: Comment[]): Promise<void> {
   try {
-    await authenticateFirebaseAnonymously();
+    const sanitizedComments = sanitizeForFirestore(comments);
     const docRef = doc(db, "posts", postId);
     await updateDoc(docRef, {
-      comments: comments,
-      commentsCount: comments.length
+      comments: sanitizedComments,
+      commentsCount: sanitizedComments.length
     });
   } catch (err) {
-    console.warn(`[FIREBASE] Failed to append comment to post ${postId}.`, err);
-    throw err;
+    handleFirestoreError(err, OperationType.UPDATE, `posts/${postId}`);
   }
 }
 
 // 5. Update professor reviews list
 export async function updateProfessorReviewsFirestore(profId: string, reviews: ProfessorReview[]): Promise<void> {
   try {
-    await authenticateFirebaseAnonymously();
     const docRef = doc(db, "professors", profId);
     await updateDoc(docRef, {
-      reviews: reviews
+      reviews: sanitizeForFirestore(reviews)
     });
   } catch (err) {
-    console.warn(`[FIREBASE] Failed to update reviews for professor ${profId}.`, err);
-    throw err;
+    handleFirestoreError(err, OperationType.UPDATE, `professors/${profId}`);
   }
 }
 
 // 6. Update single moderation record
 export async function updateModerationRecordFirestore(recordId: string, updatedFields: Partial<ModerationRecord>): Promise<void> {
   try {
-    await authenticateFirebaseAnonymously();
     const docRef = doc(db, "moderationRecords", recordId);
-    await updateDoc(docRef, updatedFields as any);
+    await updateDoc(docRef, sanitizeForFirestore(updatedFields) as any);
     console.log(`[FIREBASE] Updated moderation record ${recordId} successfully!`);
   } catch (err) {
-    console.warn(`[FIREBASE] Failed to update moderation record ${recordId}.`, err);
-    throw err;
+    handleFirestoreError(err, OperationType.UPDATE, `moderationRecords/${recordId}`);
   }
 }
 
@@ -145,8 +296,6 @@ export async function seedFirestoreDatabaseIfNecessary(
   initialTips: SurvivalTip[]
 ): Promise<void> {
   try {
-    await authenticateFirebaseAnonymously();
-    
     // Seed core posts if empty
     const postsCol = collection(db, "posts");
     const postsSnap = await getDocs(postsCol);
@@ -155,23 +304,23 @@ export async function seedFirestoreDatabaseIfNecessary(
       
       // Seed posts
       for (const p of initialPosts) {
-        await setDoc(doc(db, "posts", p.id), p);
+        await setDoc(doc(db, "posts", p.id), sanitizeForFirestore(p));
       }
       // Seed professors
       for (const pr of initialProfessors) {
-        await setDoc(doc(db, "professors", pr.id), pr);
+        await setDoc(doc(db, "professors", pr.id), sanitizeForFirestore(pr));
       }
       // Seed placementExperiences
       for (const pl of initialPlacements) {
-        await setDoc(doc(db, "placementExperiences", pl.id), pl);
+        await setDoc(doc(db, "placementExperiences", pl.id), sanitizeForFirestore(pl));
       }
       // Seed internshipExperiences
       for (const it of initialInternships) {
-        await setDoc(doc(db, "internshipExperiences", it.id), it);
+        await setDoc(doc(db, "internshipExperiences", it.id), sanitizeForFirestore(it));
       }
       // Seed survivalTips
       for (const t of initialTips) {
-        await setDoc(doc(db, "survivalTips", t.id), t);
+        await setDoc(doc(db, "survivalTips", t.id), sanitizeForFirestore(t));
       }
     }
 
@@ -295,7 +444,7 @@ export async function seedFirestoreDatabaseIfNecessary(
       ];
 
       for (const rec of seedRecords) {
-        await setDoc(doc(db, "moderationRecords", rec.id), rec);
+        await setDoc(doc(db, "moderationRecords", rec.id), sanitizeForFirestore(rec));
       }
       console.log("[FIREBASE] Seeded default moderation records successfully!");
     } else {

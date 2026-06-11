@@ -14,6 +14,8 @@ interface HeaderProps {
   onUpdateManualDept?: (dept: string) => void;
   theme: 'light' | 'midnight';
   onToggleTheme: () => void;
+  isMobileSidebarOpen?: boolean;
+  onToggleMobileSidebar?: () => void;
 }
 
 export default function Header({ 
@@ -28,7 +30,9 @@ export default function Header({
   isRollNumber,
   onUpdateManualDept,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  isMobileSidebarOpen = false,
+  onToggleMobileSidebar
 }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -49,21 +53,32 @@ export default function Header({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo & Platform Name */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setCurrentTab('feed')} id="logo-branding-container">
-            <div className="bg-violet-700 text-yellow-400 font-black p-2 rounded-lg text-lg tracking-tighter leading-none shadow-sm flex items-center justify-center w-9 h-9">
-              UN
-            </div>
-            <div>
-              <div className="flex items-center space-x-2 leading-none">
-                <h1 className="text-xl font-black uppercase tracking-tight text-violet-700 font-display">
-                  Unwritten <span className="text-slate-400 font-light font-display">REC</span>
-                </h1>
-                <span className="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 bg-yellow-400 text-violet-950 rounded-full font-sans">
-                  UNOFFICIAL
-                </span>
+          {/* Logo & Platform Name with Responsive Mobile Toggle */}
+          <div className="flex items-center space-x-2" id="header-logo-and-toggle">
+            <button 
+              onClick={onToggleMobileSidebar}
+              className="md:hidden p-2 text-slate-500 hover:text-violet-700 bg-slate-100 hover:bg-violet-50 hover:border-violet-200 border border-slate-200 rounded-xl mr-1 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+              id="mobile-sidebar-toggle-btn"
+              title="Toggle Sidebar Navigation"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setCurrentTab('feed')} id="logo-branding-container">
+              <div className="bg-violet-700 text-yellow-400 font-black p-2 rounded-lg text-lg tracking-tighter leading-none shadow-sm flex items-center justify-center w-9 h-9 shrink-0">
+                UN
               </div>
-              <p className="text-[10px] text-slate-400 font-mono tracking-tight mt-0.5">STUDENT INTEL REPOSITORY • CHENNAI</p>
+              <div className="hidden min-[450px]:block">
+                <div className="flex items-center space-x-2 leading-none">
+                  <h1 className="text-xl font-black uppercase tracking-tight text-violet-700 font-display">
+                    Unwritten <span className="text-slate-400 font-light font-display">REC</span>
+                  </h1>
+                  <span className="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 bg-yellow-400 text-violet-950 rounded-full font-sans">
+                    UNOFFICIAL
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-mono tracking-tight mt-0.5">STUDENT INTEL REPOSITORY • CHENNAI</p>
+              </div>
             </div>
           </div>
 

@@ -1,38 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /posts/{postId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    match /professors/{profId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-      
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow write: if request.auth != null;
-      }
-    }
-    
-    match /placementExperiences/{placementId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    match /internshipExperiences/{internshipId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    match /survivalTips/{tipId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    match /moderationRecords/{recordId} {
-      allow read, write: if request.auth != null;
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

@@ -106,8 +106,26 @@ export default function SurvivalSection({
       {/* Tips Container Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredTips.length === 0 ? (
-          <div className="col-span-2 text-center py-12 bg-white rounded-xl border border-dashed border-slate-200">
-            <p className="text-xs text-slate-400 italic">No survival guides listed on this category yet. Be the first to share your senior hack!</p>
+          <div className="col-span-2 text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8 space-y-4 max-w-lg mx-auto">
+            <div className="mx-auto w-12 h-12 bg-indigo-50 text-indigo-700 rounded-full flex items-center justify-center font-bold text-xl">
+              🧭
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-sans font-black text-slate-900 text-sm">No Survival Guides Yet</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                {tips.length === 0 
+                  ? "The Thandalam campus atlas is currently empty. Be the first senior or classmate to post a Xerox kiosk location, bus lane, or snack guide!"
+                  : "No survival guides listed on this category match your filters."}
+              </p>
+            </div>
+            {tips.length === 0 && (
+              <button
+                onClick={openAddSurvivalModal}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-violet-705 hover:bg-violet-800 text-white rounded-lg text-xs font-bold shadow-sm transition-all bg-violet-700"
+              >
+                <span>🧭 Create First Guide</span>
+              </button>
+            )}
           </div>
         ) : (
           filteredTips.map((tip) => (

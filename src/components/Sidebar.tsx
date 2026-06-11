@@ -12,7 +12,8 @@ import {
   MapPin,
   Bookmark,
   ShieldCheck,
-  MessageSquare
+  MessageSquare,
+  X
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,6 +22,8 @@ interface SidebarProps {
   selectedDept: string | null;
   setSelectedDept: (dept: string | null) => void;
   posts: Post[];
+  isOpenMobile?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export default function Sidebar({ 
@@ -28,7 +31,9 @@ export default function Sidebar({
   setCurrentTab,
   selectedDept,
   setSelectedDept,
-  posts
+  posts,
+  isOpenMobile = false,
+  onCloseMobile
 }: SidebarProps) {
   const menuItems = [
     { id: 'feed', label: 'Home Feed', icon: Sparkles },
@@ -68,10 +73,37 @@ export default function Sidebar({
   }, [posts]);
 
   return (
-    <aside className="w-64 border-r border-slate-200 bg-slate-50 h-[calc(100vh-64px)] overflow-y-auto hidden md:block select-none flex flex-col justify-between" id="sidebar-container">
-      <div className="p-5 flex-1" id="sidebar-nav-content">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 px-2">Navigation</h3>
-        <nav className="space-y-1">
+    <>
+      {/* Backdrop overlay for mobile drawer */}
+      {isOpenMobile && (
+        <div 
+          className="fixed inset-0 z-45 bg-slate-900/40 backdrop-blur-[1px] md:hidden transition-opacity duration-300" 
+          onClick={onCloseMobile}
+          id="sidebar-backdrop"
+        />
+      )}
+
+      <aside className={`
+        w-64 border-r border-slate-200 bg-slate-50 select-none flex flex-col justify-between h-full
+        fixed top-0 bottom-0 left-0 z-50 transition-transform duration-300 ease-in-out
+        ${isOpenMobile ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+        md:translate-x-0 md:static md:h-[calc(100vh-64px)] md:overflow-y-auto md:flex md:z-auto
+      `} id="sidebar-container">
+        <div className="p-5 flex-1" id="sidebar-nav-content">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2">Navigation</h3>
+            {isOpenMobile && (
+              <button 
+                onClick={onCloseMobile}
+                className="p-1 text-slate-400 hover:text-slate-750 bg-slate-100 hover:bg-slate-200 rounded-lg md:hidden transition-colors cursor-pointer"
+                id="mobile-sidebar-close-btn"
+                title="Close Navigation"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
@@ -84,6 +116,7 @@ export default function Sidebar({
                   if (item.id !== 'departments') {
                     setSelectedDept(null);
                   }
+                  onCloseMobile?.();
                 }}
                 className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                   isActive 
@@ -99,11 +132,7 @@ export default function Sidebar({
                     REC 101
                   </span>
                 )}
-                {item.id === 'forum' && (
-                  <span className="ml-auto text-[9px] uppercase font-black px-2 py-0.5 bg-rose-100 text-rose-800 border border-rose-200/55 rounded-full font-mono">
-                    Beta
-                  </span>
-                )}
+
               </button>
             );
           })}
@@ -121,6 +150,7 @@ export default function Sidebar({
                   onClick={() => {
                     setCurrentTab('departments');
                     setSelectedDept(dept);
+                    onCloseMobile?.();
                   }}
                   className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
                     isSelected
@@ -174,5 +204,6 @@ export default function Sidebar({
         </div>
       </div>
     </aside>
-  );
+  </>
+);
 }

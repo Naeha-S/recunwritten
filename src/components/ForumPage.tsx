@@ -477,13 +477,6 @@ export default function ForumPage({
               </div>
 
               <div className="space-y-1 border-t border-slate-100 pt-2.5">
-                <h4 className="text-xs font-bold text-slate-800">Can professors read this?</h4>
-                <p className="text-[11px] text-slate-500 leading-relaxed font-sans font-normal">
-                  This platform is officially blocked on standard campus Wi-Fi routers. This makes it a secure safehaven for real student-built reviews.
-                </p>
-              </div>
-
-              <div className="space-y-1 border-t border-slate-100 pt-2.5">
                 <h4 className="text-xs font-bold text-slate-800">What are upvotes for?</h4>
                 <p className="text-[11px] text-slate-500 leading-relaxed font-sans font-normal">
                   Higher upvotes push critical questions to the top list, alerting seniors and alumni who can write accurate answers.
